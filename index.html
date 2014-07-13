@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Csv-to-qif by mrVanDalo</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Csv-to-qif</h1>
+        <h2>convert csv files to qif files</h2>
+        <a href="https://github.com/mrVanDalo/csv-to-qif" class="button"><small>View project on</small>GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a name="csv-to-qif" class="anchor" href="#csv-to-qif"><span class="octicon octicon-link"></span></a>CSV To Qif</h1>
+
+<p>transform a wide range of csv files to qif files, with the main target to import them into <a href="http://www.gnucash.org/">GnuCash</a>.</p>
+
+<h1>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>You have to give <code>csv-to-qif</code> a lot of parameters, so it's best to create a bash script for every type of csv your bank will give you.</p>
+
+<pre><code>#!/bin/bash
+
+FILE=$1
+NEW_FILE=/tmp/bank.tmp
+CONFIG=parse.conf
+OUTPUT="Active:Bank-Name:CreditCard.qif"
+SKIP=7
+
+iconv -t UTF-8 -f ISO-8859-15 $FILE &gt; $NEW_FILE
+
+csv-to-qif --input=$NEW_FILE --output=$OUTPUT \
+    --date=0 --text=3,4 --longtext=3,4,5 --balance=7 \
+    --skip=$SKIP --separator=';' --updater=$CONFIG
+
+head -n $SKIP $FILE
+</code></pre>
+
+<h2>
+<a name="parameters" class="anchor" href="#parameters"><span class="octicon octicon-link"></span></a>Parameters</h2>
+
+<h3>
+<a name="mandatory" class="anchor" href="#mandatory"><span class="octicon octicon-link"></span></a>Mandatory</h3>
+
+<ul>
+<li>input : csv input file</li>
+<li>output : qif file name to write to.</li>
+<li>date : column of date of transaction</li>
+<li>text : list of columns to create description from</li>
+<li>longtext : same like text but for more information</li>
+<li>balance : column of balance of transaction</li>
+</ul><h3>
+<a name="optional" class="anchor" href="#optional"><span class="octicon octicon-link"></span></a>optional</h3>
+
+<ul>
+<li>skip : how many lines to skip before reading</li>
+<li>separator : default is <code>,</code>  it must be a char!</li>
+</ul><h3>
+<a name="updater-parameter" class="anchor" href="#updater-parameter"><span class="octicon octicon-link"></span></a>updater Parameter</h3>
+
+<p>Because some banks create descriptions that are <em>to detailed</em>.
+You can create a updater configuration that will match for Strings and replaces the description (not the long description) with a replacement.
+The format is <code>match</code>&lt;-&gt;<code>replacement</code></p>
+
+<p>Example updater file.</p>
+
+<pre><code>PayPal&lt;-&gt;Bought Stuff at paypal
+Your small shop says Thank you&lt;-&gt;Bought stuff at Shop
+</code></pre>
+
+<p>A file with this content</p>
+
+<pre><code>"11.11.2011","Transaction to PayPal","Bottle of water","-1000.00"
+"12.11.2011","Your small","Your small shop says Thank you for buying stuff like Explosives","-200000.00"
+</code></pre>
+
+<p>parsed without updater</p>
+
+<pre><code>$&gt; csv-to-qif --input=foo.csv --output=foo.qif --date=0 --text=1,2 --longtext=1,2,3 --balance=3
+$&gt; cat foo.qif
+
+!Type:Bank
+PTransaction to PayPal Bottle of water
+T-1000.00
+D11.11.2011
+MTransaction to PayPal Bottle of water -1000.00
+^
+PYour small Your small shop says Thank you for buying stuff like Explosives
+T-200000.00
+D12.11.2011
+MYour small Your small shop says Thank you for buying stuff like Explosives -200000.00
+^
+</code></pre>
+
+<p>parsed with updater</p>
+
+<pre><code>$&gt; csv-to-qif --input=foo.csv --output=foo-updated.qif --date=0 --text=1,2 --longtext=1,2,3 --balance=3 --updater=updater.conf
+$&gt; cat foo-updated.qif
+
+!Type:Bank
+PBought Stuff at paypal
+T-1000.00
+D11.11.2011
+MTransaction to PayPal Bottle of water -1000.00
+^
+PBought stuff at Shop
+T-200000.00
+D12.11.2011
+MYour small Your small shop says Thank you for buying stuff like Explosives -200000.00
+^
+</code></pre>
+
+<h1>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>Install</h1>
+
+<h2>
+<a name="using-cabal" class="anchor" href="#using-cabal"><span class="octicon octicon-link"></span></a>using Cabal</h2>
+
+<pre><code>$&gt; cabal update
+$&gt; cabal install csv-to-qif
+</code></pre>
+
+<p>should do it.</p>
+
+<h2>
+<a name="from-sources" class="anchor" href="#from-sources"><span class="octicon octicon-link"></span></a>from sources</h2>
+
+<p>get the source</p>
+
+<pre><code>$&gt; git clone  https://github.com/mrVanDalo/csv-to-qif.git
+$&gt; cd csv-to-qif
+</code></pre>
+
+<p>install from source</p>
+
+<pre><code>$&gt; cabal clean                      # just to be sure
+$&gt; cabal configure --enable-tests   # we want also the tests
+$&gt; cabal build                      # sure we want to build
+$&gt; cabal test &amp;&amp; cabal install      # only install when tests are ok
+</code></pre>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/mrVanDalo/csv-to-qif/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/mrVanDalo/csv-to-qif/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/mrVanDalo/csv-to-qif"></a> is maintained by <a href="https://github.com/mrVanDalo">mrVanDalo</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
